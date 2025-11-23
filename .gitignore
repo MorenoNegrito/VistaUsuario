@@ -1,0 +1,52 @@
+# ==================== .gitignore ====================
+
+# Built application files
+*.apk
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+release/
+
+# Gradle files
+.gradle/
+build/
+*/build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# IntelliJ
+*.iml
+.idea/
+*.ipr
+*.iws
+
+# Android Studio
+.navigation/
+captures/
+.externalNativeBuild
+.cxx
+
+# Keystore files (IMPORTANTE: nunca subas estos)
+*.jks
+*.keystore
+
+# Google Services (si usas Firebase)
+google-services.json
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# API Keys (CRÍTICO - ver abajo)
+# NO subas tu API key de Google Maps
