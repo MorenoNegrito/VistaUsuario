@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.vetapp_usuario.data.local.UsuarioPreferences
 import com.example.vetapp_usuario.data.repository.UsuarioRepository
 import com.example.vetapp_usuario.navigation.AppNavigation
+import com.example.vetapp_usuario.ui.theme.VetAppTheme
 import com.example.vetapp_usuario.viewmodel.AuthViewModel
 import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
 
@@ -19,7 +20,7 @@ class MainActivity : ComponentActivity() {
 
         // Inicializar dependencias
         val preferences = UsuarioPreferences(this)
-        val repository = UsuarioRepository() // Constructor sin parámetros
+        val repository = UsuarioRepository()
 
         // Crear ViewModels usando constructor por defecto
         val usuarioViewModel: UsuarioViewModel =
@@ -29,17 +30,18 @@ class MainActivity : ComponentActivity() {
             ViewModelProvider(this)[AuthViewModel::class.java]
 
         setContent {
-            MaterialTheme {
+            // 🔥 CAMBIO: Usar VetAppTheme en lugar de MaterialTheme
+            VetAppTheme {
                 Surface {
                     val navController = rememberNavController()
                     AppNavigation(
                         navController = navController,
+                        authViewModel = authViewModel,
                         usuarioViewModel = usuarioViewModel,
-                        authViewModel = authViewModel
+                        preferences = preferences
                     )
                 }
             }
         }
     }
-
 }

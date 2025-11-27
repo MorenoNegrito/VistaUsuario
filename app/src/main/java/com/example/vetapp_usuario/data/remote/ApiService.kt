@@ -8,6 +8,10 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 import java.util.concurrent.TimeUnit
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
 interface ApiService {
 
     // AUTH

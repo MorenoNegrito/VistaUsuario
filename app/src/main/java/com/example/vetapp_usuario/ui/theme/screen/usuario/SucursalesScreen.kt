@@ -4,19 +4,23 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.vetapp_usuario.data.model.Sucursal
 import com.example.vetapp_usuario.navigation.AppRoutes
+import com.example.vetapp_usuario.ui.theme.*
 import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
 
-// ==================== SUCURSALES SCREEN ====================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SucursalesScreen(
@@ -32,65 +36,51 @@ fun SucursalesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Veterinarias Disponibles") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
-                    }
-                }
+                title = {
+                    Text(
+                        text = "Sucursales",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BackgroundWhite,
+                    titleContentColor = TextPrimary
+                )
             )
-        }
-    ) { innerPadding ->
+        },
+        containerColor = BackgroundLight
+    ) { padding ->
+
         Box(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
+                .padding(padding)
         ) {
             when {
                 uiState.isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = PrimaryBlue
+                    )
                 }
-                uiState.error != null -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Error: ${uiState.error}",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadSucursales() }) {
-                            Text("Reintentar")
-                        }
-                    }
-                }
+
                 uiState.sucursales.isEmpty() -> {
-                    Text(
-                        text = "No hay sucursales disponibles",
+                    EmptySucursalesState(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        contentPadding = PaddingValues(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        item {
-                            Text(
-                                text = "${uiState.sucursales.size} sucursales disponibles",
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                        }
-
                         items(uiState.sucursales) { sucursal ->
                             SucursalCard(
                                 sucursal = sucursal,
                                 onClick = {
+                                    viewModel.seleccionarSucursal(sucursal)
                                     navController.navigate(AppRoutes.DetalleSucursal.create(sucursal.id))
                                 }
                             )
@@ -103,101 +93,175 @@ fun SucursalesScreen(
 }
 
 @Composable
-private fun SucursalCard(
-    sucursal: com.example.vetapp_usuario.data.model.Sucursal,
+fun SucursalCard(
+    sucursal: Sucursal,
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BackgroundWhite
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
+            // Header
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Default.LocationOn,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = sucursal.nombre,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = sucursal.ciudad,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                Surface(
+                    modifier = Modifier.size(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = IconBackground
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocalHospital,
+                        contentDescription = null,
+                        modifier = Modifier.padding(12.dp),
+                        tint = PrimaryBlue
                     )
                 }
-            }
 
-            Spacer(Modifier.height(12.dp))
-            Divider()
-            Spacer(Modifier.height(12.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = sucursal.nombre,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+
+                    if (sucursal.activo != false) {
+                        Surface(
+                            modifier = Modifier.padding(top = 4.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFD1FAE5)
+                        ) {
+                            Text(
+                                text = "Activo",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                fontSize = 11.sp,
+                                color = AccentGreen,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
                 Icon(
-                    Icons.Default.Place,
+                    Icons.Default.ChevronRight,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = sucursal.direccion,
-                    style = MaterialTheme.typography.bodyMedium
+                    tint = TextTertiary
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.DateRange,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = sucursal.horarioAtencion,
-                    style = MaterialTheme.typography.bodyMedium
+            Divider(color = BorderLight)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Detalles
+            SucursalInfoRow(
+                icon = Icons.Default.LocationOn,
+                text = sucursal.direccion
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SucursalInfoRow(
+                icon = Icons.Default.Phone,
+                text = sucursal.telefono
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SucursalInfoRow(
+                icon = Icons.Default.Schedule,
+                text = sucursal.horarioAtencion
+            )
+
+            if (!sucursal.ciudad.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SucursalInfoRow(
+                    icon = Icons.Default.LocationCity,
+                    text = sucursal.ciudad
                 )
             }
+        }
+    }
+}
 
-            Spacer(Modifier.height(8.dp))
+@Composable
+fun SucursalInfoRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = TextSecondary
+        )
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            color = TextSecondary
+        )
+    }
+}
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Phone,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = sucursal.telefono,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Text(
-                text = "Tap para ver veterinarios →",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
+@Composable
+fun EmptySucursalesState(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Surface(
+            modifier = Modifier.size(100.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = IconBackground
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null,
+                modifier = Modifier.padding(24.dp),
+                tint = PrimaryBlue
             )
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "No hay sucursales disponibles",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextPrimary
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Por favor, intenta más tarde",
+            fontSize = 14.sp,
+            color = TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
     }
 }

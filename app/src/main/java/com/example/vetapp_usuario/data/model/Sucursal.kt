@@ -8,8 +8,10 @@ data class Sucursal(
     @SerializedName("direccion") val direccion: String,
     @SerializedName("telefono") val telefono: String,
     @SerializedName("horarioAtencion") val horarioAtencion: String,
-    @SerializedName("serviciosDisponibles") val serviciosDisponibles: String,
-    @SerializedName("ciudad") val ciudad: String,
+
+    // Campos opcionales que pueden venir del backend
+    @SerializedName("serviciosDisponibles") val serviciosDisponibles: String? = null,
+    @SerializedName("ciudad") val ciudad: String? = null,
     @SerializedName("activo") val activo: Boolean? = true,
     @SerializedName("veterinarios") val veterinarios: List<Veterinario>? = null
 )

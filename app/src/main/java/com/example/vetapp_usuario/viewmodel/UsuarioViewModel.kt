@@ -314,6 +314,20 @@ class UsuarioViewModel(
         }
     }
 
+    // ==================== SELECCIÓN ====================
+
+    fun seleccionarMascota(mascota: Mascota?) {
+        _uiState.value = _uiState.value.copy(mascotaSeleccionada = mascota)
+    }
+
+    fun seleccionarVeterinario(veterinario: Veterinario?) {
+        _uiState.value = _uiState.value.copy(veterinarioSeleccionado = veterinario)
+    }
+
+    fun seleccionarSucursal(sucursal: Sucursal?) {
+        _uiState.value = _uiState.value.copy(sucursalSeleccionada = sucursal)
+    }
+
     // ==================== UTILS ====================
 
     fun clearError() {

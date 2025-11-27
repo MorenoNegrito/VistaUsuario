@@ -1,35 +1,30 @@
 package com.example.vetapp_usuario.ui.theme.screen.usuario
 
-import androidx.compose.material3.ExperimentalMaterial3Api
-
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.vetapp_usuario.data.local.UsuarioPreferences
-import com.example.vetapp_usuario.data.model.MascotaRequest
-import com.example.vetapp_usuario.navigation.AppRoutes
+import com.example.vetapp_usuario.data.model.Resena
+import com.example.vetapp_usuario.ui.theme.*
 import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-@OptIn(ExperimentalMaterial3Api::class)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerResenasScreen(
-    navController: NavController,
+    veterinarioId: Int,
     viewModel: UsuarioViewModel,
-    veterinarioId: Int
+    navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -40,82 +35,65 @@ fun VerResenasScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Reseñas") },
+                title = {
+                    Text(
+                        text = "Reseñas",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BackgroundWhite,
+                    titleContentColor = TextPrimary
+                )
             )
-        }
-    ) { innerPadding ->
+        },
+        containerColor = BackgroundLight
+    ) { padding ->
+
         Box(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
+                .padding(padding)
         ) {
             when {
                 uiState.isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                uiState.error != null -> {
-                    Text(
-                        text = "Error: ${uiState.error}",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center).padding(16.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = PrimaryBlue
                     )
                 }
+
                 uiState.resenas.isEmpty() -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Star,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text("Este veterinario aún no tiene reseñas")
-                    }
+                    EmptyResenasState(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(20.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Promedio
+                        // Resumen de calificaciones
                         item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(20.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    val promedio = uiState.resenas.map { it.estrellas }.average()
-                                    Text(
-                                        text = String.format("%.1f", promedio),
-                                        style = MaterialTheme.typography.displayLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Row {
-                                        repeat(5) {
-                                            Icon(
-                                                Icons.Default.Star,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.tertiary
-                                            )
-                                        }
-                                    }
-                                    Text("${uiState.resenas.size} reseñas")
-                                }
-                            }
+                            ResumenCalificaciones(
+                                resenas = uiState.resenas
+                            )
+                        }
+
+                        item {
+                            Text(
+                                text = "Todas las Reseñas (${uiState.resenas.size})",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
                         }
 
                         // Lista de reseñas
@@ -130,71 +108,267 @@ fun VerResenasScreen(
 }
 
 @Composable
-private fun ResenaCard(
-    resena: com.example.vetapp_usuario.data.model.Resena
+fun ResumenCalificaciones(
+    resenas: List<Resena>
 ) {
+    val promedio = if (resenas.isNotEmpty()) {
+        resenas.map { it.estrellas }.average()
+    } else 0.0
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BackgroundWhite
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Calificación Promedio",
+                fontSize = 14.sp,
+                color = TextSecondary,
+                fontWeight = FontWeight.Medium
+            )
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.AccountCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = resena.usuario?.nombre ?: "Usuario",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                Text(
+                    text = String.format("%.1f", promedio),
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Icon(
+                    Icons.Default.Star,
+                    contentDescription = null,
+                    tint = AccentOrange,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+
+            Text(
+                text = "Basado en ${resenas.size} reseñas",
+                fontSize = 13.sp,
+                color = TextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Distribución de estrellas
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                (5 downTo 1).forEach { stars ->
+                    val count = resenas.count { it.estrellas == stars }
+                    val percentage = if (resenas.isNotEmpty()) {
+                        (count.toFloat() / resenas.size) * 100
+                    } else 0f
+
+                    DistribucionEstrellas(
+                        estrellas = stars,
+                        cantidad = count,
+                        porcentaje = percentage
                     )
                 }
+            }
+        }
+    }
+}
 
-                Row {
+@Composable
+fun DistribucionEstrellas(
+    estrellas: Int,
+    cantidad: Int,
+    porcentaje: Float
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "$estrellas",
+            fontSize = 13.sp,
+            color = TextSecondary,
+            modifier = Modifier.width(12.dp)
+        )
+
+        Icon(
+            Icons.Default.Star,
+            contentDescription = null,
+            tint = AccentOrange,
+            modifier = Modifier.size(14.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(8.dp)
+        ) {
+            // Fondo
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(4.dp),
+                color = BorderLight
+            ) {}
+
+            // Barra de progreso
+            Surface(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(porcentaje / 100f),
+                shape = RoundedCornerShape(4.dp),
+                color = AccentOrange
+            ) {}
+        }
+
+        Text(
+            text = "$cantidad",
+            fontSize = 12.sp,
+            color = TextSecondary,
+            modifier = Modifier.width(24.dp)
+        )
+    }
+}
+
+@Composable
+fun ResenaCard(
+    resena: Resena
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BackgroundWhite
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header con usuario y calificación
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier.size(40.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = IconBackground
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.padding(8.dp),
+                            tint = PrimaryBlue
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = resena.usuario?.nombre ?: "Usuario",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = formatFechaResena(resena.fechaCreacion),
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                // Estrellas
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
                     repeat(resena.estrellas) {
                         Icon(
                             Icons.Default.Star,
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.tertiary
+                            tint = AccentOrange,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    repeat(5 - resena.estrellas) {
+                        Icon(
+                            Icons.Default.StarBorder,
+                            contentDescription = null,
+                            tint = BorderMedium,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
-
+            // Comentario
             Text(
                 text = resena.comentario,
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Text(
-                text = formatFechaResena(resena.fechaCreacion),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontSize = 14.sp,
+                color = TextSecondary,
+                lineHeight = 20.sp
             )
         }
     }
 }
 
-private fun formatFechaResena(fecha: String): String {
-    return try {
-        val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
-        val outputFormat = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
-        val date = inputFormat.parse(fecha)
-        outputFormat.format(date ?: java.util.Date())
-    } catch (e: Exception) {
-        fecha
+@Composable
+fun EmptyResenasState(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Surface(
+            modifier = Modifier.size(100.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = IconBackground
+        ) {
+            Icon(
+                imageVector = Icons.Default.StarBorder,
+                contentDescription = null,
+                modifier = Modifier.padding(24.dp),
+                tint = PrimaryBlue
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Sin reseñas aún",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextPrimary
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Este veterinario aún no tiene reseñas",
+            fontSize = 14.sp,
+            color = TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
     }
+}
+
+fun formatFechaResena(fecha: String): String {
+    // Simplificado - implementa formato real
+    return fecha.take(10)
 }

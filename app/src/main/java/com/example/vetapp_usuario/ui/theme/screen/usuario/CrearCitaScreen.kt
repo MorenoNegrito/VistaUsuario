@@ -1,10 +1,12 @@
 package com.example.vetapp_usuario.ui.theme.screen.usuario
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -12,250 +14,268 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.example.vetapp_usuario.data.local.UsuarioPreferences
-import com.example.vetapp_usuario.data.model.CitaRequest
-import com.example.vetapp_usuario.navigation.AppRoutes
+import androidx.compose.ui.unit.sp
+import com.example.vetapp_usuario.data.model.*
+import com.example.vetapp_usuario.ui.theme.*
 import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
+import com.example.vetapp_usuario.ui.theme.components.SelectSucursalDialog
+import com.example.vetapp_usuario.ui.theme.components.SelectMascotaDialog
+import com.example.vetapp_usuario.ui.theme.components.SelectVeterinarioDialog
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrearCitaScreen(
-    navController: NavController,
-    viewModel: UsuarioViewModel
+    token: String,
+    viewModel: UsuarioViewModel,
+    onCreated: () -> Unit
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val preferences = remember { UsuarioPreferences(context) }
     val scope = rememberCoroutineScope()
 
-    var selectedMascotaId by remember { mutableStateOf<Int?>(null) }
-    var selectedSucursalId by remember { mutableStateOf<Int?>(null) }
-    var selectedVeterinarioId by remember { mutableStateOf<Int?>(null) }
-    var motivo by remember { mutableStateOf("") }
-    var mensaje by remember { mutableStateOf("") }
+    var fechaHora by remember { mutableStateOf("") }
+    var motivoCita by remember { mutableStateOf("") }
+    var mensajeCliente by remember { mutableStateOf("") }
 
-    // Fecha y hora seleccionadas
-    var selectedDate by remember { mutableStateOf("") }
-    var selectedTime by remember { mutableStateOf("") }
-
-    // Estados de expansión
-    var mascotaExpanded by remember { mutableStateOf(false) }
-    var sucursalExpanded by remember { mutableStateOf(false) }
-    var veterinarioExpanded by remember { mutableStateOf(false) }
+    // Dialogos
+    var showMascotaDialog by remember { mutableStateOf(false) }
+    var showSucursalDialog by remember { mutableStateOf(false) }
+    var showVeterinarioDialog by remember { mutableStateOf(false) }
 
     // Cargar datos iniciales
-    LaunchedEffect(Unit) {
-        val token = preferences.token.first()
-        token?.let {
-            viewModel.loadMascotas(it)
-            viewModel.loadSucursales()
-        }
+    LaunchedEffect(token) {
+        viewModel.loadMascotas(token)
+        viewModel.loadSucursales()
     }
 
-    // Cargar veterinarios cuando se seleccione sucursal
-    LaunchedEffect(selectedSucursalId) {
-        selectedSucursalId?.let {
-            viewModel.loadVeterinariosBySucursal(it)
+    LaunchedEffect(uiState.sucursalSeleccionada?.id) {
+        uiState.sucursalSeleccionada?.let { sucursal ->
+            viewModel.loadVeterinariosBySucursal(sucursal.id)
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Agendar Cita") },
+                title = { Text("Agendar Cita", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
+                    IconButton(onClick = onCreated) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BackgroundWhite,
+                    titleContentColor = TextPrimary
+                )
             )
-        }
-    ) { innerPadding ->
+        },
+        containerColor = BackgroundLight
+    ) { padding ->
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
+                .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                "Información de la Cita",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
 
-            // Selector de Mascota
-            ExposedDropdownMenuBox(
-                expanded = mascotaExpanded,
-                onExpandedChange = { mascotaExpanded = !mascotaExpanded }
+            Text("Información de la Cita", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = BackgroundWhite)
             ) {
-                OutlinedTextField(
-                    value = uiState.mascotas.find { it.id == selectedMascotaId }?.nombre ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Selecciona tu mascota") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = mascotaExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    placeholder = { Text("Elige una mascota") }
-                )
-                ExposedDropdownMenu(
-                    expanded = mascotaExpanded,
-                    onDismissRequest = { mascotaExpanded = false }
-                ) {
-                    uiState.mascotas.forEach { mascota ->
-                        DropdownMenuItem(
-                            text = { Text("${mascota.nombre} (${mascota.especie})") },
-                            onClick = {
-                                selectedMascotaId = mascota.id
-                                mascotaExpanded = false
-                            }
-                        )
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                    // Mascota
+                    SelectionCard(
+                        icon = Icons.Default.Pets,
+                        label = "Mascota",
+                        value = uiState.mascotaSeleccionada?.nombre ?: "Seleccionar mascota",
+                        isSelected = uiState.mascotaSeleccionada != null,
+                        onClick = { showMascotaDialog = true }
+                    )
+
+                    Divider(color = BorderLight)
+
+                    // Sucursal
+                    SelectionCard(
+                        icon = Icons.Default.LocationOn,
+                        label = "Sucursal",
+                        value = uiState.sucursalSeleccionada?.nombre ?: "Seleccionar sucursal",
+                        isSelected = uiState.sucursalSeleccionada != null,
+                        onClick = { showSucursalDialog = true }
+                    )
+
+                    Divider(color = BorderLight)
+
+                    // Veterinario
+                    SelectionCard(
+                        icon = Icons.Default.Person,
+                        label = "Veterinario",
+                        value = uiState.veterinarioSeleccionado?.nombre?.let { "Dr. $it" } ?: "Seleccionar veterinario",
+                        isSelected = uiState.veterinarioSeleccionado != null,
+                        enabled = uiState.sucursalSeleccionada != null,
+                        onClick = { if (uiState.sucursalSeleccionada != null) showVeterinarioDialog = true }
+                    )
+
+                    if (uiState.sucursalSeleccionada == null) {
+                        Text("* Selecciona primero una sucursal", fontSize = 12.sp, color = AccentOrange, modifier = Modifier.padding(start = 36.dp))
                     }
                 }
             }
 
-            // Selector de Sucursal
-            ExposedDropdownMenuBox(
-                expanded = sucursalExpanded,
-                onExpandedChange = { sucursalExpanded = !sucursalExpanded }
+            Text("Detalles", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = BackgroundWhite)
             ) {
-                OutlinedTextField(
-                    value = uiState.sucursales.find { it.id == selectedSucursalId }?.nombre ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Selecciona sucursal") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sucursalExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    placeholder = { Text("Elige una sucursal") }
-                )
-                ExposedDropdownMenu(
-                    expanded = sucursalExpanded,
-                    onDismissRequest = { sucursalExpanded = false }
-                ) {
-                    uiState.sucursales.forEach { sucursal ->
-                        DropdownMenuItem(
-                            text = { Text("${sucursal.nombre} - ${sucursal.ciudad}") },
-                            onClick = {
-                                selectedSucursalId = sucursal.id
-                                selectedVeterinarioId = null // Reset veterinario
-                                sucursalExpanded = false
-                            }
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                    OutlinedTextField(
+                        value = fechaHora,
+                        onValueChange = { fechaHora = it },
+                        label = { Text("Fecha y Hora") },
+                        placeholder = { Text("2024-12-25 10:30:00") },
+                        leadingIcon = { Icon(Icons.Default.CalendarToday, null, tint = PrimaryBlue) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryBlue,
+                            focusedLabelColor = PrimaryBlue,
+                            cursorColor = PrimaryBlue
                         )
-                    }
+                    )
+
+                    OutlinedTextField(
+                        value = motivoCita,
+                        onValueChange = { motivoCita = it },
+                        label = { Text("Motivo de la Cita") },
+                        placeholder = { Text("Consulta general, vacunación, etc.") },
+                        leadingIcon = { Icon(Icons.Default.MedicalServices, null, tint = PrimaryBlue) },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3,
+                        maxLines = 5,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryBlue,
+                            focusedLabelColor = PrimaryBlue,
+                            cursorColor = PrimaryBlue
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = mensajeCliente,
+                        onValueChange = { mensajeCliente = it },
+                        label = { Text("Mensaje Adicional (opcional)") },
+                        placeholder = { Text("Información adicional...") },
+                        leadingIcon = { Icon(Icons.Default.Notes, null, tint = PrimaryBlue) },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 4,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryBlue,
+                            focusedLabelColor = PrimaryBlue,
+                            cursorColor = PrimaryBlue
+                        )
+                    )
                 }
             }
 
-            // Selector de Veterinario
-            ExposedDropdownMenuBox(
-                expanded = veterinarioExpanded,
-                onExpandedChange = {
-                    if (selectedSucursalId != null) veterinarioExpanded = !veterinarioExpanded
-                }
-            ) {
-                OutlinedTextField(
-                    value = uiState.veterinarios.find { it.id == selectedVeterinarioId }?.nombre ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Selecciona veterinario") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = veterinarioExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    placeholder = { Text("Primero selecciona sucursal") },
-                    enabled = selectedSucursalId != null
-                )
-                ExposedDropdownMenu(
-                    expanded = veterinarioExpanded,
-                    onDismissRequest = { veterinarioExpanded = false }
-                ) {
-                    uiState.veterinarios.forEach { vet ->
-                        DropdownMenuItem(
-                            text = { Text("${vet.nombre} - ${vet.especialidad}") },
-                            onClick = {
-                                selectedVeterinarioId = vet.id
-                                veterinarioExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Fecha y Hora (inputs simples por ahora)
-            OutlinedTextField(
-                value = selectedDate,
-                onValueChange = { selectedDate = it },
-                label = { Text("Fecha (YYYY-MM-DD)") },
-                placeholder = { Text("2025-12-25") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = selectedTime,
-                onValueChange = { selectedTime = it },
-                label = { Text("Hora (HH:MM)") },
-                placeholder = { Text("14:30") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = motivo,
-                onValueChange = { motivo = it },
-                label = { Text("Motivo de la cita") },
-                placeholder = { Text("Ej: Control rutinario") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2
-            )
-
-            OutlinedTextField(
-                value = mensaje,
-                onValueChange = { mensaje = it },
-                label = { Text("Mensaje adicional (opcional)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
-
-            Spacer(Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = {
                     scope.launch {
-                        val token = preferences.token.first()
-                        if (token != null && selectedMascotaId != null &&
-                            selectedSucursalId != null && selectedVeterinarioId != null &&
-                            selectedDate.isNotBlank() && selectedTime.isNotBlank()) {
+                        val request = CitaRequest(
+                            mascotaId = uiState.mascotaSeleccionada?.id ?: 0,
+                            sucursalId = uiState.sucursalSeleccionada?.id ?: 0,
+                            veterinarioId = uiState.veterinarioSeleccionado?.id ?: 0,
+                            fechaHora = fechaHora,
+                            motivoCita = motivoCita,
+                            mensajeCliente = mensajeCliente.ifBlank { null }
+                        )
 
-                            val fechaHora = "${selectedDate}T${selectedTime}:00"
-
-                            viewModel.crearCita(
-                                token = token,
-                                request = CitaRequest(
-                                    mascotaId = selectedMascotaId!!,
-                                    sucursalId = selectedSucursalId!!,
-                                    veterinarioId = selectedVeterinarioId!!,
-                                    fechaHora = fechaHora,
-                                    motivoCita = motivo,
-                                    mensajeCliente = mensaje.ifEmpty { null }
-                                ),
-                                onSuccess = { navController.popBackStack() }
-                            )
+                        viewModel.crearCita(token, request) {
+                            Toast.makeText(context, "Cita agendada con éxito", Toast.LENGTH_LONG).show()
+                            onCreated()
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = selectedMascotaId != null && selectedSucursalId != null &&
-                        selectedVeterinarioId != null && selectedDate.isNotBlank() &&
-                        selectedTime.isNotBlank() && motivo.isNotBlank()
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+                enabled = !uiState.isLoading &&
+                        fechaHora.isNotBlank() &&
+                        motivoCita.isNotBlank() &&
+                        uiState.mascotaSeleccionada != null &&
+                        uiState.sucursalSeleccionada != null &&
+                        uiState.veterinarioSeleccionado != null,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryBlue,
+                    disabledContainerColor = BorderLight
+                )
             ) {
-                Icon(Icons.Default.Check, null)
-                Spacer(Modifier.width(8.dp))
-                Text("Agendar Cita")
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.Check, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Agendar Cita", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
+    }
+
+    if (showMascotaDialog) SelectMascotaDialog(uiState.mascotas, onDismiss = { showMascotaDialog = false }) { mascota ->
+        viewModel.seleccionarMascota(mascota)
+        showMascotaDialog = false
+    }
+
+    if (showSucursalDialog) SelectSucursalDialog(uiState.sucursales, onDismiss = { showSucursalDialog = false }) { sucursal ->
+        viewModel.seleccionarSucursal(sucursal)
+        viewModel.seleccionarVeterinario(null)
+        showSucursalDialog = false
+    }
+
+    if (showVeterinarioDialog) SelectVeterinarioDialog(uiState.veterinarios, onDismiss = { showVeterinarioDialog = false }) { vet ->
+        viewModel.seleccionarVeterinario(vet)
+        showVeterinarioDialog = false
+    }
+}
+
+// ---------------------- COMPONENTES ----------------------
+
+@Composable
+fun SelectionCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    isSelected: Boolean = false,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick)
+            .alpha(if (enabled) 1f else 0.5f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = if (isSelected) PrimaryBlue else TextSecondary)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(value, fontSize = 15.sp, color = if (isSelected) TextPrimary else TextSecondary, fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal)
+        }
+        Icon(if (isSelected) Icons.Default.CheckCircle else Icons.Default.ChevronRight, contentDescription = null, tint = if (isSelected) AccentGreen else TextTertiary)
     }
 }

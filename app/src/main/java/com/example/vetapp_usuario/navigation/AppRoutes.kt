@@ -1,5 +1,6 @@
 package com.example.vetapp_usuario.navigation
 
+
 sealed class AppRoutes(val route: String) {
 
     // ==================== AUTH ====================
@@ -12,29 +13,26 @@ sealed class AppRoutes(val route: String) {
     // ==================== MASCOTAS ====================
     object Mascotas : AppRoutes("mascotas")
     object CrearMascota : AppRoutes("crear_mascota")
-    object DetalleMascota : AppRoutes("detalle_mascota/{id}") {
-        fun create(id: Int) = "detalle_mascota/$id"
+    object DetalleMascota : AppRoutes("detalle_mascota/{mascotaId}") {
+        fun create(mascotaId: Int) = "detalle_mascota/$mascotaId"
     }
 
     // ==================== SUCURSALES ====================
     object Sucursales : AppRoutes("sucursales")
-    object DetalleSucursal : AppRoutes("detalle_sucursal/{id}") {
-        fun create(id: Int) = "detalle_sucursal/$id"
+    object DetalleSucursal : AppRoutes("detalle_sucursal/{sucursalId}") {
+        fun create(sucursalId: Int) = "detalle_sucursal/$sucursalId"
     }
 
     // ==================== CITAS ====================
     object MisCitas : AppRoutes("mis_citas")
-
-    // ✅ CORREGIDO: Ya no recibe mascotaId
     object CrearCita : AppRoutes("crear_cita")
-
-    object DetalleCita : AppRoutes("detalle_cita/{id}") {
-        fun create(id: Int) = "detalle_cita/$id"
+    object DetalleCita : AppRoutes("detalle_cita/{citaId}") {
+        fun create(citaId: Int) = "detalle_cita/$citaId"
     }
 
     // ==================== RESEÑAS ====================
-    object CrearResena : AppRoutes("crear_resena/{citaId}") {
-        fun create(citaId: Int) = "crear_resena/$citaId"
+    object CrearResena : AppRoutes("crear_resena/{citaId}/{veterinarioId}") {
+        fun create(citaId: Int, veterinarioId: Int) = "crear_resena/$citaId/$veterinarioId"
     }
 
     object VerResenas : AppRoutes("ver_resenas/{veterinarioId}") {

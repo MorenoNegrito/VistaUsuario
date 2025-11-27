@@ -58,17 +58,13 @@ android {
         kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 }
 
 dependencies {
-
+    implementation("androidx.compose.material:material-icons-extended:1.5.0")
     // Android + Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -97,11 +93,12 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
 
-    // DataStore
+    // DataStore (CRÍTICO para persistencia de sesión)
     implementation(libs.datastore.preferences)
 
     // Permissions
     implementation(libs.accompanist.permissions)
+    implementation(libs.litert.support.api)
 
     // Testing
     testImplementation(libs.junit)

@@ -1,11 +1,8 @@
 package com.example.vetapp_usuario.ui.theme.screen.shared
-import androidx.compose.material3.ExperimentalMaterial3Api
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -15,162 +12,270 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.vetapp_usuario.data.local.UsuarioPreferences
-import com.example.vetapp_usuario.data.model.MascotaRequest
-import com.example.vetapp_usuario.navigation.AppRoutes
-import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import com.example.vetapp_usuario.ui.theme.*
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    navController: NavController
+    navController: NavController,
+    preferences: UsuarioPreferences
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val preferences = remember { UsuarioPreferences(context) }
-    val scope = rememberCoroutineScope()
-
-    var userName by remember { mutableStateOf("Usuario") }
-    var userEmail by remember { mutableStateOf("") }
-
-    LaunchedEffect(Unit) {
-        preferences.userName.first()?.let { userName = it }
-        preferences.userEmail.first()?.let { userEmail = it }
-    }
+    val userName by preferences.userName.collectAsState(initial = "Usuario")
+    val userEmail by preferences.userEmail.collectAsState(initial = "email@ejemplo.com")
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mi Perfil") },
+                title = {
+                    Text(
+                        text = "Mi Perfil",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // Header
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.AccountCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = userName,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = userEmail,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // Opciones
-            Text(
-                "Opciones",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            ProfileOption(
-                icon = Icons.Default.FavoriteBorder,
-                title = "Gestionar Mascotas",
-                onClick = { navController.navigate(AppRoutes.Mascotas.route) }
-            )
-
-            ProfileOption(
-                icon = Icons.Default.DateRange,
-                title = "Mis Citas",
-                onClick = { navController.navigate(AppRoutes.MisCitas.route) }
-            )
-
-            ProfileOption(
-                icon = Icons.Default.Settings,
-                title = "Configuración",
-                onClick = { navController.navigate(AppRoutes.Settings.route) }
-            )
-
-            Spacer(Modifier.weight(1f))
-
-            // Cerrar sesión
-            OutlinedButton(
-                onClick = {
-                    scope.launch {
-                        preferences.clearAll()
-                        navController.navigate(AppRoutes.Login.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
+                actions = {
+                    IconButton(onClick = { /* Editar perfil */ }) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Editar",
+                            tint = PrimaryBlue
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BackgroundWhite,
+                    titleContentColor = TextPrimary
+                )
+            )
+        },
+        containerColor = BackgroundLight
+    ) { padding ->
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+
+            // Header del perfil
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = IconBackground
                 )
             ) {
-                Icon(Icons.Default.Person, null)
-                Spacer(Modifier.width(8.dp))
-                Text("Cerrar Sesión")
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        modifier = Modifier.size(100.dp),
+                        shape = RoundedCornerShape(50.dp),
+                        color = BackgroundWhite
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.padding(24.dp),
+                            tint = PrimaryBlue
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = userName ?: "Usuario",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+
+                    Text(
+                        text = userEmail ?: "email@ejemplo.com",
+                        fontSize = 14.sp,
+                        color = TextSecondary
+                    )
+                }
             }
+
+            // Estadísticas
+            Text(
+                text = "Estadísticas",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatCard(
+                    icon = Icons.Default.Pets,
+                    value = "0",
+                    label = "Mascotas",
+                    modifier = Modifier.weight(1f)
+                )
+
+                StatCard(
+                    icon = Icons.Default.CalendarMonth,
+                    value = "0",
+                    label = "Citas",
+                    modifier = Modifier.weight(1f)
+                )
+
+                StatCard(
+                    icon = Icons.Default.Star,
+                    value = "0",
+                    label = "Reseñas",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Información personal
+            Text(
+                text = "Información Personal",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary
+            )
+
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = BackgroundWhite
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    ProfileInfoRow(
+                        icon = Icons.Default.Person,
+                        label = "Nombre completo",
+                        value = userName ?: "No especificado"
+                    )
+
+                    Divider(color = BorderLight)
+
+                    ProfileInfoRow(
+                        icon = Icons.Default.Email,
+                        label = "Email",
+                        value = userEmail ?: "No especificado"
+                    )
+
+                    Divider(color = BorderLight)
+
+                    ProfileInfoRow(
+                        icon = Icons.Default.Phone,
+                        label = "Teléfono",
+                        value = "No especificado"
+                    )
+
+                    Divider(color = BorderLight)
+
+                    ProfileInfoRow(
+                        icon = Icons.Default.Home,
+                        label = "Dirección",
+                        value = "No especificado"
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
-private fun ProfileOption(
+fun StatCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    onClick: () -> Unit
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BackgroundWhite
+        )
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                icon,
+                imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = PrimaryBlue,
+                modifier = Modifier.size(28.dp)
             )
-            Spacer(Modifier.width(16.dp))
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f)
+                text = value,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
             )
-            Icon(
-                Icons.Default.PlayArrow,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                color = TextSecondary
+            )
+        }
+    }
+}
+
+@Composable
+fun ProfileInfoRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = PrimaryBlue
+        )
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                color = TextSecondary,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = value,
+                fontSize = 15.sp,
+                color = TextPrimary
             )
         }
     }
