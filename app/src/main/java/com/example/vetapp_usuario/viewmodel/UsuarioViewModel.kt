@@ -1,6 +1,5 @@
 package com.example.vetapp_usuario.viewmodel
 
-import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vetapp_usuario.data.model.*
@@ -10,6 +9,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+// ✅ CAMBIO: citas usa CitaUsuarioDTO
+data class UsuarioUiState(
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val mascotas: List<Mascota> = emptyList(),
+    val citas: List<CitaUsuarioDTO> = emptyList(),
+    val sucursales: List<Sucursal> = emptyList(),
+    val veterinarios: List<Veterinario> = emptyList(),
+    val resenas: List<Resena> = emptyList(),
+    val mascotaSeleccionada: Mascota? = null,
+    val veterinarioSeleccionado: Veterinario? = null,
+    val sucursalSeleccionada: Sucursal? = null
+)
 
 class UsuarioViewModel(
     private val repo: UsuarioRepository = UsuarioRepository()
@@ -28,9 +40,6 @@ class UsuarioViewModel(
 
     // ==================== MASCOTAS ====================
 
-    /**
-     * Cargar listado de mascotas (usa token)
-     */
     fun loadMascotas(token: String) {
         viewModelScope.launch {
             setLoading(true)
@@ -50,9 +59,6 @@ class UsuarioViewModel(
         }
     }
 
-    /**
-     * Crear mascota
-     */
     fun crearMascota(token: String, request: MascotaRequest, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             setLoading(true)
@@ -60,7 +66,6 @@ class UsuarioViewModel(
             try {
                 val response = repo.crearMascota(token, request)
                 if (response.isSuccessful) {
-                    // Recargar lista de mascotas
                     loadMascotas(token)
                     onSuccess()
                 } else {
@@ -74,9 +79,6 @@ class UsuarioViewModel(
         }
     }
 
-    /**
-     * Eliminar mascota
-     */
     fun eliminarMascota(token: String, id: Int, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             setLoading(true)
@@ -84,7 +86,6 @@ class UsuarioViewModel(
             try {
                 val response = repo.eliminarMascota(token, id)
                 if (response.isSuccessful) {
-                    // Recargar lista de mascotas
                     loadMascotas(token)
                     onSuccess()
                 } else {
@@ -100,9 +101,6 @@ class UsuarioViewModel(
 
     // ==================== SUCURSALES ====================
 
-    /**
-     * Cargar sucursales
-     */
     fun loadSucursales() {
         viewModelScope.launch {
             setLoading(true)
@@ -122,9 +120,6 @@ class UsuarioViewModel(
         }
     }
 
-    /**
-     * Cargar detalle de sucursal con veterinarios
-     */
     fun loadSucursalDetail(id: Int) {
         viewModelScope.launch {
             setLoading(true)
@@ -133,7 +128,6 @@ class UsuarioViewModel(
                 val response = repo.getSucursalById(id)
                 if (response.isSuccessful) {
                     response.body()?.let { sucursal ->
-                        // Actualizar la sucursal seleccionada
                         _uiState.value = _uiState.value.copy(
                             sucursalSeleccionada = sucursal,
                             veterinarios = sucursal.veterinarios ?: emptyList()
@@ -150,9 +144,6 @@ class UsuarioViewModel(
         }
     }
 
-    /**
-     * Cargar veterinarios por sucursal
-     */
     fun loadVeterinariosBySucursal(sucursalId: Int) {
         viewModelScope.launch {
             setLoading(true)
@@ -174,9 +165,6 @@ class UsuarioViewModel(
 
     // ==================== CITAS ====================
 
-    /**
-     * Cargar citas del usuario (usa token)
-     */
     fun loadCitas(token: String) {
         viewModelScope.launch {
             setLoading(true)
@@ -196,22 +184,33 @@ class UsuarioViewModel(
         }
     }
 
-    /**
-     * Obtener detalle de una cita
-     */
-    fun getCitaDetail(token: String, citaId: Int, onResult: (Cita?) -> Unit) {
+    // ✅ CAMBIO: onResult recibe CitaUsuarioDTO
+    fun getCitaDetail(token: String, citaId: Int, onResult: (CitaUsuarioDTO?) -> Unit) {
         viewModelScope.launch {
             setLoading(true)
             setError(null)
             try {
+
+                // 🔥🔥 AGREGAR LOGS AQUÍ 🔥🔥
+                android.util.Log.d("DETALLE_CITA", "Llamando detalle de cita...")
+                android.util.Log.d("DETALLE_CITA", "Token enviado: '$token'")
+                android.util.Log.d("DETALLE_CITA", "ID enviado: $citaId")
+
                 val resp = repo.getCitaById(token, citaId)
+
+                android.util.Log.d("DETALLE_CITA", "Código respuesta: ${resp.code()}")
+                android.util.Log.d("DETALLE_CITA", "Mensaje: ${resp.message()}")
+                android.util.Log.d("DETALLE_CITA", "Body: ${resp.body()}")
+
                 if (resp.isSuccessful) {
                     onResult(resp.body())
                 } else {
                     setError("Error ${resp.code()}: ${resp.message()}")
                     onResult(null)
                 }
+
             } catch (e: Exception) {
+                android.util.Log.e("DETALLE_CITA", "Excepción: ${e.message}")
                 setError(e.message ?: "Error de red")
                 onResult(null)
             } finally {
@@ -220,9 +219,7 @@ class UsuarioViewModel(
         }
     }
 
-    /**
-     * Crear cita
-     */
+
     fun crearCita(token: String, request: CitaRequest, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             setLoading(true)
@@ -230,7 +227,6 @@ class UsuarioViewModel(
             try {
                 val response = repo.crearCita(token, request)
                 if (response.isSuccessful) {
-                    // Recargar lista de citas
                     loadCitas(token)
                     onSuccess()
                 } else {
@@ -244,9 +240,6 @@ class UsuarioViewModel(
         }
     }
 
-    /**
-     * Cancelar cita
-     */
     fun cancelarCita(token: String, id: Int, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             setLoading(true)
@@ -254,7 +247,6 @@ class UsuarioViewModel(
             try {
                 val response = repo.cancelarCita(token, id)
                 if (response.isSuccessful) {
-                    // Recargar lista de citas
                     loadCitas(token)
                     onSuccess()
                 } else {
@@ -270,9 +262,6 @@ class UsuarioViewModel(
 
     // ==================== RESEÑAS ====================
 
-    /**
-     * Cargar reseñas por veterinario
-     */
     fun loadResenasByVeterinario(veterinarioId: Int) {
         viewModelScope.launch {
             setLoading(true)
@@ -292,9 +281,6 @@ class UsuarioViewModel(
         }
     }
 
-    /**
-     * Crear reseña
-     */
     fun crearResena(token: String, request: ResenaRequest, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             setLoading(true)

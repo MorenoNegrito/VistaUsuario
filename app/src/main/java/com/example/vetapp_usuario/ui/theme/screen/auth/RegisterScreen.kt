@@ -44,7 +44,9 @@ fun RegisterScreen(
     LaunchedEffect(uiState.registerSuccess) {
         if (uiState.registerSuccess && uiState.token != null) {
             scope.launch {
-                preferences.saveToken("Bearer ${uiState.token}")
+                // ✅ CORRECCIÓN: NO agregar "Bearer " aquí
+                // El Repository ya lo agrega en cada petición
+                preferences.saveToken(uiState.token!!)
                 preferences.saveUserId(uiState.userId ?: 0)
                 preferences.setLoggedIn(true)
                 onRegisterSuccess()

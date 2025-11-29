@@ -65,6 +65,7 @@ android {
 
 dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.5.0")
+
     // Android + Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -109,4 +110,6 @@ dependencies {
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+
 }

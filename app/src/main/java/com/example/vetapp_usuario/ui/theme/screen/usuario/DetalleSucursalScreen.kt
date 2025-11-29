@@ -1,6 +1,5 @@
 package com.example.vetapp_usuario.ui.theme.screen.usuario
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.example.vetapp_usuario.data.model.Sucursal
 import com.example.vetapp_usuario.data.model.Veterinario
 import com.example.vetapp_usuario.ui.theme.*
 import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
@@ -24,10 +25,9 @@ import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
 fun DetalleSucursalScreen(
     sucursalId: Int,
     viewModel: UsuarioViewModel,
-    navController: androidx.navigation.NavController
+    navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val sucursal = uiState.sucursalSeleccionada
 
     LaunchedEffect(sucursalId) {
         viewModel.loadSucursalDetail(sucursalId)
@@ -38,7 +38,7 @@ fun DetalleSucursalScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = sucursal?.nombre ?: "Detalle Sucursal",
+                        text = uiState.sucursalSeleccionada?.nombre ?: "Sucursal",
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -61,138 +61,173 @@ fun DetalleSucursalScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = PrimaryBlue
-                )
-            } else if (sucursal != null) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Información de la sucursal
-                    item {
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = BackgroundWhite
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                InfoRow(
-                                    icon = Icons.Default.LocationOn,
-                                    label = "Dirección",
-                                    value = sucursal.direccion
-                                )
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = PrimaryBlue
+                    )
+                }
 
-                                Divider(color = BorderLight)
-
-                                InfoRow(
-                                    icon = Icons.Default.Phone,
-                                    label = "Teléfono",
-                                    value = sucursal.telefono
-                                )
-
-                                Divider(color = BorderLight)
-
-                                InfoRow(
-                                    icon = Icons.Default.Schedule,
-                                    label = "Horario",
-                                    value = sucursal.horarioAtencion
-                                )
-
-                                if (!sucursal.ciudad.isNullOrBlank()) {
-                                    Divider(color = BorderLight)
-
-                                    InfoRow(
-                                        icon = Icons.Default.LocationCity,
-                                        label = "Ciudad",
-                                        value = sucursal.ciudad
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Servicios disponibles
-                    if (!sucursal.serviciosDisponibles.isNullOrBlank()) {
-                        item {
-                            Text(
-                                text = "Servicios Disponibles",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-                        }
-
-                        item {
-                            Card(
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = BackgroundWhite
-                                )
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(20.dp)
-                                ) {
-                                    Text(
-                                        text = sucursal.serviciosDisponibles,
-                                        fontSize = 14.sp,
-                                        color = TextSecondary,
-                                        lineHeight = 20.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Veterinarios
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Veterinarios",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = IconBackground
-                            ) {
-                                Text(
-                                    text = "${uiState.veterinarios.size} disponibles",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    fontSize = 12.sp,
-                                    color = PrimaryBlue,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-
-                    items(uiState.veterinarios) { veterinario ->
-                        VeterinarioCard(
-                            veterinario = veterinario,
-                            onClick = {
-                                viewModel.seleccionarVeterinario(veterinario)
-                                navController.navigate(
-                                    com.example.vetapp_usuario.navigation.AppRoutes.VerResenas.create(veterinario.id)
-                                )
-                            }
+                uiState.sucursalSeleccionada == null -> {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = AccentRed
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Sucursal no encontrada",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
                         )
                     }
                 }
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Información de la sucursal
+                        item {
+                            SucursalInfoCard(
+                                sucursal = uiState.sucursalSeleccionada!!
+                            )
+                        }
+
+                        // Título de veterinarios
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Veterinarios Disponibles",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "${uiState.veterinarios.size}",
+                                    fontSize = 14.sp,
+                                    color = TextSecondary
+                                )
+                            }
+                        }
+
+                        // Lista de veterinarios
+                        if (uiState.veterinarios.isEmpty()) {
+                            item {
+                                EmptyVeterinariosState()
+                            }
+                        } else {
+                            items(uiState.veterinarios) { veterinario ->
+                                VeterinarioCard(
+                                    veterinario = veterinario,
+                                    onVerResenas = {
+                                        navController.navigate("ver_resenas/${veterinario.id}")
+                                    },
+                                    onDejarResena = {
+                                        navController.navigate("crear_resena/${veterinario.id}")
+                                    }
+                                )
+                            }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SucursalInfoCard(
+    sucursal: Sucursal
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BackgroundWhite
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = IconBackground
+                ) {
+                    Icon(
+                        Icons.Default.LocationOn,
+                        contentDescription = null,
+                        modifier = Modifier.padding(12.dp),
+                        tint = PrimaryBlue
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = sucursal.nombre,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = sucursal.ciudad ?: "",
+                        fontSize = 13.sp,
+                        color = TextSecondary
+                    )
+                }
+            }
+
+            Divider(color = BorderLight)
+
+            InfoRow(
+                icon = Icons.Default.Place,
+                label = "Dirección",
+                value = sucursal.direccion
+            )
+
+            InfoRow(
+                icon = Icons.Default.Phone,
+                label = "Teléfono",
+                value = sucursal.telefono
+            )
+
+            InfoRow(
+                icon = Icons.Default.Schedule,
+                label = "Horario",
+                value = sucursal.horarioAtencion ?: "Consultar"
+            )
+
+            sucursal.serviciosDisponibles?.let { servicios ->
+                InfoRow(
+                    icon = Icons.Default.MedicalServices,
+                    label = "Servicios",
+                    value = servicios
+                )
             }
         }
     }
@@ -205,9 +240,8 @@ fun InfoRow(
     value: String
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
     ) {
         Icon(
             imageVector = icon,
@@ -228,7 +262,7 @@ fun InfoRow(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = value,
-                fontSize = 15.sp,
+                fontSize = 14.sp,
                 color = TextPrimary
             )
         }
@@ -238,95 +272,162 @@ fun InfoRow(
 @Composable
 fun VeterinarioCard(
     veterinario: Veterinario,
-    onClick: () -> Unit
+    onVerResenas: () -> Unit,
+    onDejarResena: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = BackgroundWhite
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Surface(
-                modifier = Modifier.size(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = IconBackground
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.padding(12.dp),
-                    tint = PrimaryBlue
-                )
-            }
+                Surface(
+                    modifier = Modifier.size(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = IconBackground
+                ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.padding(12.dp),
+                        tint = PrimaryBlue
+                    )
+                }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "Dr. ${veterinario.nombre}",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = veterinario.especialidad,
-                    fontSize = 13.sp,
-                    color = TextSecondary
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                if ((veterinario.totalResenas ?: 0) > 0) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Star,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = AccentOrange
-                        )
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Dr. ${veterinario.nombre}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    veterinario.especialidad?.let { especialidad ->
                         Text(
-                            text = "${veterinario.promResenas ?: 0.0}",
-                            fontSize = 12.sp,
-                            color = TextSecondary,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "(${veterinario.totalResenas})",
-                            fontSize = 12.sp,
-                            color = TextTertiary
+                            text = especialidad,
+                            fontSize = 13.sp,
+                            color = TextSecondary
                         )
                     }
-                } else {
+                }
+            }
+
+            veterinario.licencia?.let { licencia ->
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFFF0FDF4)
+                ) {
                     Text(
-                        text = "Sin reseñas aún",
-                        fontSize = 12.sp,
-                        color = TextTertiary
+                        text = "Lic. $licencia",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 11.sp,
+                        color = AccentGreen,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = TextTertiary
+            Divider(color = BorderLight)
+
+            // Botones de acción
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Botón Ver Reseñas
+                OutlinedButton(
+                    onClick = onVerResenas,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = PrimaryBlue
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue)
+                ) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Ver Reseñas", fontSize = 13.sp)
+                }
+
+                // Botón Dejar Reseña
+                Button(
+                    onClick = onDejarResena,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AccentGreen
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Dejar Reseña", fontSize = 13.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyVeterinariosState() {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BackgroundWhite
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Surface(
+                modifier = Modifier.size(80.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = IconBackground
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PersonOff,
+                    contentDescription = null,
+                    modifier = Modifier.padding(20.dp),
+                    tint = PrimaryBlue
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "Sin veterinarios disponibles",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Esta sucursal aún no tiene veterinarios asignados",
+                fontSize = 14.sp,
+                color = TextSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }

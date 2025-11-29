@@ -3,9 +3,11 @@ package com.example.vetapp_usuario.navigation
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.vetapp_usuario.data.local.UsuarioPreferences
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -63,7 +65,7 @@ fun AppNavigation(
         composable(AppRoutes.Login.route) {
             LoginScreen(
                 viewModel = authViewModel,
-                preferences = preferences, // 🔥 Agregado
+                preferences = preferences,
                 onLoginSuccess = {
                     navController.navigate(AppRoutes.Home.route) {
                         popUpTo(AppRoutes.Login.route) { inclusive = true }
@@ -78,7 +80,7 @@ fun AppNavigation(
         composable(AppRoutes.Register.route) {
             RegisterScreen(
                 viewModel = authViewModel,
-                preferences = preferences, // 🔥 Agregado
+                preferences = preferences,
                 onRegisterSuccess = {
                     navController.navigate(AppRoutes.Home.route) {
                         popUpTo(AppRoutes.Register.route) { inclusive = true }
@@ -96,7 +98,7 @@ fun AppNavigation(
                 onMascotasClick = { navController.navigate(AppRoutes.Mascotas.route) },
                 onSucursalesClick = { navController.navigate(AppRoutes.Sucursales.route) },
                 onCitasClick = { navController.navigate(AppRoutes.MisCitas.route) },
-                onResenasClick = {},
+                onResenasClick = { navController.navigate(AppRoutes.Sucursales.route) },  // ✅ Navegar a Sucursales
                 onCrearMascotaClick = { navController.navigate(AppRoutes.CrearMascota.route) },
                 onCrearCitaClick = { navController.navigate(AppRoutes.CrearCita.route) },
                 onProfileClick = { navController.navigate(AppRoutes.Settings.route) }
@@ -108,7 +110,7 @@ fun AppNavigation(
             val token by preferences.token.collectAsState(initial = null)
             MascotasScreen(
                 viewModel = usuarioViewModel,
-                token = token ?: "",
+                token = token ?: "",  // ✅ Usa "" si token es null
                 onCrearMascota = {
                     navController.navigate(AppRoutes.CrearMascota.route)
                 }
@@ -118,16 +120,19 @@ fun AppNavigation(
         composable(AppRoutes.CrearMascota.route) {
             val token by preferences.token.collectAsState(initial = null)
             CrearMascotaScreen(
-                token = token ?: "",
+                token = token ?: "",  // ✅ Usa "" si token es null
                 viewModel = usuarioViewModel,
                 onSuccess = { navController.popBackStack() }
             )
         }
 
-        composable(AppRoutes.DetalleMascota.route) {
-            val id = it.arguments?.getString("id")?.toIntOrNull() ?: 0
+        composable(
+            route = "detalle_mascota/{mascotaId}",
+            arguments = listOf(navArgument("mascotaId") { type = NavType.IntType })
+        ) { backStack ->
+            val mascotaId = backStack.arguments?.getInt("mascotaId") ?: 0
             DetalleMascotaScreen(
-                mascotaId = id,
+                mascotaId = mascotaId,
                 viewModel = usuarioViewModel,
                 navController = navController
             )
@@ -141,10 +146,13 @@ fun AppNavigation(
             )
         }
 
-        composable(AppRoutes.DetalleSucursal.route) {
-            val id = it.arguments?.getString("sucursalId")?.toIntOrNull() ?: 0
+        composable(
+            route = "detalle_sucursal/{sucursalId}",
+            arguments = listOf(navArgument("sucursalId") { type = NavType.IntType })
+        ) { backStack ->
+            val sucursalId = backStack.arguments?.getInt("sucursalId") ?: 0
             DetalleSucursalScreen(
-                sucursalId = id,
+                sucursalId = sucursalId,
                 viewModel = usuarioViewModel,
                 navController = navController
             )
@@ -152,7 +160,9 @@ fun AppNavigation(
 
         // ==================== CITAS ====================
         composable(AppRoutes.MisCitas.route) {
+            val token by preferences.token.collectAsState(initial = null)
             MisCitasScreen(
+                token = token ?: "",  // ✅ Usa "" si token es null
                 navController = navController,
                 viewModel = usuarioViewModel
             )
@@ -161,43 +171,54 @@ fun AppNavigation(
         composable(AppRoutes.CrearCita.route) {
             val token by preferences.token.collectAsState(initial = null)
             CrearCitaScreen(
-                token = token ?: "", // aquí se asegura que siempre sea String NO nulo
+                token = token ?: "",  // ✅ Usa "" si token es null
                 viewModel = usuarioViewModel,
                 onCreated = { navController.popBackStack() }
             )
-
         }
 
-
-        composable(AppRoutes.DetalleCita.route) { backStack ->
-            val token by preferences.token.collectAsState(initial = null)
-            val citaId = backStack.arguments?.getString("id")?.toInt() ?: 0
+        composable(
+            route = "detalle_cita/{citaId}",
+            arguments = listOf(navArgument("citaId") { type = NavType.IntType })
+        ) { backStack ->
+            val token by preferences.token.collectAsState(initial = "")
+            val citaId = backStack.arguments?.getInt("citaId") ?: 0
             DetalleCitaScreen(
-                token = token ?: "",
+                token = token ?: "",  // ✅ Manejar nullable
                 citaId = citaId,
                 viewModel = usuarioViewModel,
+                navController = navController,
                 onCancelSuccess = { navController.popBackStack() }
             )
         }
 
         // ==================== RESEÑAS ====================
-        composable(AppRoutes.CrearResena.route) { backStack ->
-            val token by preferences.token.collectAsState(initial = null)
-            val citaId = backStack.arguments?.getString("citaId")?.toInt() ?: 0
-            val vetId = usuarioViewModel.uiState.value.veterinarioSeleccionado?.id ?: 0
+        // Crear reseña (solo necesita veterinarioId)
+        composable(
+            route = "crear_resena/{veterinarioId}",
+            arguments = listOf(
+                navArgument("veterinarioId") { type = NavType.IntType }
+            )
+        ) { backStack ->
+            val token by preferences.token.collectAsState(initial = "")
+            val veterinarioId = backStack.arguments?.getInt("veterinarioId") ?: 0
 
             CrearResenaScreen(
                 token = token ?: "",
-                citaId = citaId,
-                veterinarioId = vetId,
+                veterinarioId = veterinarioId,
                 viewModel = usuarioViewModel,
                 onSuccess = { navController.popBackStack() }
             )
         }
 
-        composable(AppRoutes.VerResenas.route) { backStack ->
-            val veterinarioId = backStack.arguments?.getString("veterinarioId")?.toIntOrNull() ?: 0
+        composable(
+            route = "ver_resenas/{veterinarioId}",
+            arguments = listOf(navArgument("veterinarioId") { type = NavType.IntType })
+        ) { backStack ->
+            val token by preferences.token.collectAsState(initial = "")  // ✅ Agregar token
+            val veterinarioId = backStack.arguments?.getInt("veterinarioId") ?: 0
             VerResenasScreen(
+                token = token ?: "",  // ✅ Pasar token
                 veterinarioId = veterinarioId,
                 viewModel = usuarioViewModel,
                 navController = navController

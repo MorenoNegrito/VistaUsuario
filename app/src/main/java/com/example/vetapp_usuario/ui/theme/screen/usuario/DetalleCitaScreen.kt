@@ -1,5 +1,6 @@
 package com.example.vetapp_usuario.ui.theme.screen.usuario
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,7 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.vetapp_usuario.data.model.Cita
+import androidx.navigation.NavController
+import com.example.vetapp_usuario.data.model.CitaUsuarioDTO
 import com.example.vetapp_usuario.ui.theme.*
 import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
 
@@ -24,15 +26,24 @@ fun DetalleCitaScreen(
     token: String,
     citaId: Int,
     viewModel: UsuarioViewModel,
+    navController: NavController,
     onCancelSuccess: () -> Unit
 ) {
-    var cita by remember { mutableStateOf<Cita?>(null) }
+    var cita by remember { mutableStateOf<CitaUsuarioDTO?>(null) }
     var showCancelDialog by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(citaId) {
-        viewModel.getCitaDetail(token, citaId) { citaResult ->
-            cita = citaResult
+    // ✅ Esperar a que el token esté disponible antes de cargar
+    LaunchedEffect(token, citaId) {
+        if (token.isNotBlank()) {
+            Log.d("DetalleCita", "Cargando detalle de cita ID: $citaId")
+            Log.d("DetalleCita", "Token disponible: ${token.take(20)}...")
+            viewModel.getCitaDetail(token, citaId) { citaResult ->
+                cita = citaResult
+                Log.d("DetalleCita", "Cita cargada: ${citaResult?.motivo}")
+            }
+        } else {
+            Log.e("DetalleCita", "⚠️ Token aún no disponible, esperando...")
         }
     }
 
@@ -65,95 +76,100 @@ fun DetalleCitaScreen(
                 .padding(padding)
         ) {
 
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = PrimaryBlue
-                )
-            } else if (cita != null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = PrimaryBlue
+                    )
+                }
 
-                    // Estado de la cita
-                    EstadoCitaCard(estado = cita!!.estado)
-
-                    // Información principal
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = BackgroundWhite)
+                uiState.error != null -> {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = AccentRed
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Error al cargar",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.error ?: "Error desconocido",
+                            fontSize = 14.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                cita != null -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+
+                        // Estado de la cita
+                        EstadoCitaCard(estado = cita!!.estado)
+
+                        // Información principal
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = BackgroundWhite)
                         ) {
-                            DetailRow(
-                                icon = Icons.Default.CalendarToday,
-                                label = "Fecha y Hora",
-                                value = cita!!.fechaHora
-                            )
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                DetailRow(
+                                    icon = Icons.Default.CalendarToday,
+                                    label = "Fecha y Hora",
+                                    value = formatFechaDetalle(cita!!.fechaHora)
+                                )
 
-                            Divider(color = BorderLight)
+                                Divider(color = BorderLight)
 
-                            if (cita!!.mascota != null) {
                                 DetailRow(
                                     icon = Icons.Default.Pets,
                                     label = "Mascota",
-                                    value = cita!!.mascota!!.nombre
+                                    value = cita!!.mascotaNombre
                                 )
-                                Divider(color = BorderLight)
-                            }
 
-                            if (cita!!.veterinario != null) {
+                                Divider(color = BorderLight)
+
                                 DetailRow(
                                     icon = Icons.Default.Person,
                                     label = "Veterinario",
-                                    value = "Dr. ${cita!!.veterinario!!.nombre}",
-                                    subtitle = cita!!.veterinario!!.especialidad
+                                    value = cita!!.veterinarioNombre,
+                                    subtitle = cita!!.veterinarioEspecialidad
                                 )
-                                Divider(color = BorderLight)
-                            }
 
-                            if (cita!!.sucursal != null) {
+                                Divider(color = BorderLight)
+
                                 DetailRow(
                                     icon = Icons.Default.LocationOn,
                                     label = "Sucursal",
-                                    value = cita!!.sucursal!!.nombre,
-                                    subtitle = cita!!.sucursal!!.direccion
+                                    value = cita!!.sucursalNombre
                                 )
                             }
                         }
-                    }
 
-                    // Motivo
-                    Text(
-                        text = "Motivo de la Cita",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
-                    )
-
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = BackgroundWhite)
-                    ) {
+                        // Motivo
                         Text(
-                            text = cita!!.motivoCita,
-                            modifier = Modifier.padding(20.dp),
-                            fontSize = 14.sp,
-                            color = TextSecondary,
-                            lineHeight = 20.sp
-                        )
-                    }
-
-                    // Mensaje del cliente si existe
-                    if (!cita!!.mensajeCliente.isNullOrBlank()) {
-                        Text(
-                            text = "Mensaje Adicional",
+                            text = "Motivo de la Cita",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TextPrimary
@@ -164,85 +180,62 @@ fun DetalleCitaScreen(
                             colors = CardDefaults.cardColors(containerColor = BackgroundWhite)
                         ) {
                             Text(
-                                text = cita!!.mensajeCliente!!,
+                                text = cita!!.motivo,
                                 modifier = Modifier.padding(20.dp),
                                 fontSize = 14.sp,
                                 color = TextSecondary,
                                 lineHeight = 20.sp
                             )
                         }
-                    }
 
-                    // Diagnóstico y tratamiento (si está completada)
-                    if (cita!!.estado.uppercase() == "COMPLETADA") {
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                        if (!cita!!.diagnostico.isNullOrBlank()) {
-                            Text(
-                                text = "Diagnóstico",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-
-                            Card(
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = BackgroundWhite)
-                            ) {
-                                Text(
-                                    text = cita!!.diagnostico!!,
-                                    modifier = Modifier.padding(20.dp),
-                                    fontSize = 14.sp,
-                                    color = TextSecondary,
-                                    lineHeight = 20.sp
+                        // Botón crear reseña (solo si está completada)
+                        if (cita!!.estado.uppercase() == "COMPLETADA" && cita!!.veterinarioId != null) {
+                            Button(
+                                onClick = {
+                                    Log.d("DetalleCita", "Navegando a crear reseña - CitaID: ${cita!!.id}, VetID: ${cita!!.veterinarioId}")
+                                    navController.navigate(
+                                        "crear_resena/${cita!!.id.toInt()}/${cita!!.veterinarioId!!.toInt()}"
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = AccentGreen
                                 )
+                            ) {
+                                Icon(Icons.Default.Star, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Dejar Reseña", fontWeight = FontWeight.SemiBold)
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // Botón cancelar (solo si está pendiente o confirmada)
+                        if (cita!!.estado.uppercase() in listOf("PENDIENTE", "CONFIRMADA")) {
+                            OutlinedButton(
+                                onClick = { showCancelDialog = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = AccentRed
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, AccentRed)
+                            ) {
+                                Icon(Icons.Default.Cancel, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Cancelar Cita", fontWeight = FontWeight.SemiBold)
                             }
                         }
 
-                        if (!cita!!.tratamiento.isNullOrBlank()) {
-                            Text(
-                                text = "Tratamiento",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-
-                            Card(
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = BackgroundWhite)
-                            ) {
-                                Text(
-                                    text = cita!!.tratamiento!!,
-                                    modifier = Modifier.padding(20.dp),
-                                    fontSize = 14.sp,
-                                    color = TextSecondary,
-                                    lineHeight = 20.sp
-                                )
-                            }
-                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Botón cancelar (solo si está pendiente o confirmada)
-                    if (cita!!.estado.uppercase() in listOf("PENDIENTE", "CONFIRMADA")) {
-                        OutlinedButton(
-                            onClick = { showCancelDialog = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = AccentRed
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, AccentRed)
-                        ) {
-                            Icon(Icons.Default.Cancel, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Cancelar Cita", fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -272,7 +265,7 @@ fun DetalleCitaScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.cancelarCita(token, cita!!.id) {
+                        viewModel.cancelarCita(token, cita!!.id.toInt()) {
                             showCancelDialog = false
                             onCancelSuccess()
                         }
@@ -392,7 +385,7 @@ fun DetailRow(
                 color = TextPrimary,
                 fontWeight = FontWeight.Medium
             )
-            if (subtitle != null) {
+            if (subtitle != null && subtitle.isNotBlank()) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = subtitle,
@@ -401,5 +394,21 @@ fun DetailRow(
                 )
             }
         }
+    }
+}
+
+fun formatFechaDetalle(fechaHora: String): String {
+    return try {
+        val partes = fechaHora.split("T")
+        if (partes.size >= 2) {
+            val fecha = partes[0]
+            val hora = partes[1].take(5)
+            "$fecha a las $hora"
+        } else {
+            fechaHora
+        }
+    } catch (e: Exception) {
+        Log.e("DetalleCita", "Error formateando fecha: ${e.message}")
+        fechaHora
     }
 }

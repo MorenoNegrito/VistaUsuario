@@ -1,5 +1,6 @@
 package com.example.vetapp_usuario.ui.theme.screen.usuario
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.vetapp_usuario.data.model.Cita
+import com.example.vetapp_usuario.data.model.CitaUsuarioDTO
 import com.example.vetapp_usuario.navigation.AppRoutes
 import com.example.vetapp_usuario.ui.theme.*
 import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
@@ -24,14 +25,15 @@ import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MisCitasScreen(
+    token: String,
     navController: NavController,
     viewModel: UsuarioViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val token by remember { mutableStateOf("") } // Obtener de preferences
 
     LaunchedEffect(token) {
         if (token.isNotBlank()) {
+            Log.d("MisCitasScreen", "Cargando citas...")
             viewModel.loadCitas(token)
         }
     }
@@ -39,11 +41,11 @@ fun MisCitasScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Mis Citas",
-                        fontWeight = FontWeight.Bold
-                    )
+                title = { Text("Mis Citas", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = BackgroundWhite,
@@ -55,10 +57,9 @@ fun MisCitasScreen(
             FloatingActionButton(
                 onClick = { navController.navigate(AppRoutes.CrearCita.route) },
                 containerColor = PrimaryBlue,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(16.dp)
+                contentColor = Color.White
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Nueva cita")
+                Icon(Icons.Default.Add, contentDescription = "Crear Cita")
             }
         },
         containerColor = BackgroundLight
@@ -77,6 +78,46 @@ fun MisCitasScreen(
                     )
                 }
 
+                uiState.error != null -> {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = AccentRed
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Error al cargar citas",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.error ?: "Error desconocido",
+                            fontSize = 14.sp,
+                            color = TextSecondary
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = { viewModel.loadCitas(token) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryBlue
+                            )
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Reintentar")
+                        }
+                    }
+                }
+
                 uiState.citas.isEmpty() -> {
                     EmptyCitasState(
                         onCrearCita = { navController.navigate(AppRoutes.CrearCita.route) },
@@ -90,13 +131,21 @@ fun MisCitasScreen(
                         contentPadding = PaddingValues(20.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.citas) { cita ->
+                        items(
+                            items = uiState.citas,
+                            key = { cita -> cita.id }
+                        ) { cita ->
                             CitaCard(
                                 cita = cita,
                                 onClick = {
-                                    navController.navigate(AppRoutes.DetalleCita.create(cita.id))
+                                    Log.d("MisCitas", "Navegando a detalle cita ID: ${cita.id}")
+                                    navController.navigate(AppRoutes.DetalleCita.create(cita.id.toInt()))
                                 }
                             )
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(80.dp))
                         }
                     }
                 }
@@ -107,17 +156,19 @@ fun MisCitasScreen(
 
 @Composable
 fun CitaCard(
-    cita: Cita,
+    cita: CitaUsuarioDTO,
     onClick: () -> Unit
 ) {
-    val estadoColor = when (cita.estado.uppercase()) {
+    val estadoUpper = cita.estado.uppercase()
+
+    val estadoColor = when (estadoUpper) {
         "CONFIRMADA" -> StatusConfirmed
         "COMPLETADA" -> StatusCompleted
         "CANCELADA" -> StatusCancelled
         else -> StatusPending
     }
 
-    val estadoBackground = when (cita.estado.uppercase()) {
+    val estadoBackground = when (estadoUpper) {
         "CONFIRMADA" -> Color(0xFFDEEBFF)
         "COMPLETADA" -> Color(0xFFD1FAE5)
         "CANCELADA" -> Color(0xFFFEE2E2)
@@ -137,7 +188,6 @@ fun CitaCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Header con estado
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -166,7 +216,7 @@ fun CitaCard(
                     color = estadoBackground
                 ) {
                     Text(
-                        text = cita.estado,
+                        text = estadoUpper,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         fontSize = 11.sp,
                         color = estadoColor,
@@ -176,49 +226,39 @@ fun CitaCard(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
             Divider(color = BorderLight)
-
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Información
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (cita.mascota != null) {
-                    CitaInfoRow(
-                        icon = Icons.Default.Pets,
-                        label = "Mascota",
-                        value = cita.mascota.nombre
-                    )
-                }
+                CitaInfoRow(
+                    icon = Icons.Default.Pets,
+                    label = "Mascota",
+                    value = cita.mascotaNombre
+                )
 
-                if (cita.veterinario != null) {
-                    CitaInfoRow(
-                        icon = Icons.Default.Person,
-                        label = "Veterinario",
-                        value = "Dr. ${cita.veterinario.nombre}"
-                    )
-                }
+                CitaInfoRow(
+                    icon = Icons.Default.Person,
+                    label = "Veterinario",
+                    value = cita.veterinarioNombre
+                )
 
-                if (cita.sucursal != null) {
-                    CitaInfoRow(
-                        icon = Icons.Default.LocationOn,
-                        label = "Sucursal",
-                        value = cita.sucursal.nombre
-                    )
-                }
+                CitaInfoRow(
+                    icon = Icons.Default.LocationOn,
+                    label = "Sucursal",
+                    value = cita.sucursalNombre
+                )
 
                 CitaInfoRow(
                     icon = Icons.Default.Notes,
                     label = "Motivo",
-                    value = cita.motivoCita
+                    value = cita.motivo
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Botón ver detalles
             OutlinedButton(
                 onClick = onClick,
                 modifier = Modifier.fillMaxWidth(),
@@ -329,6 +369,17 @@ fun EmptyCitasState(
 }
 
 fun formatFecha(fechaHora: String): String {
-    // Simplificado - implementa formato real según tu necesidad
-    return fechaHora.take(10) // YYYY-MM-DD
+    return try {
+        val partes = fechaHora.split("T")
+        if (partes.size >= 2) {
+            val fecha = partes[0]
+            val hora = partes[1].take(5)
+            "$fecha $hora"
+        } else {
+            fechaHora.take(16)
+        }
+    } catch (e: Exception) {
+        Log.e("MisCitasScreen", "Error formateando fecha: ${e.message}")
+        fechaHora.take(10)
+    }
 }

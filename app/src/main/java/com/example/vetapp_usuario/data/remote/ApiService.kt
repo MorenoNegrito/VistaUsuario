@@ -1,16 +1,8 @@
 package com.example.vetapp_usuario.data.remote
 
 import com.example.vetapp_usuario.data.model.*
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
-import java.util.concurrent.TimeUnit
-import kotlin.Boolean
-import kotlin.Int
-import kotlin.String
 
 interface ApiService {
 
@@ -60,21 +52,21 @@ interface ApiService {
     @GET("api/sucursales/{id}/veterinarios")
     suspend fun getVeterinariosBySucursal(@Path("id") sucursalId: Int): Response<List<Veterinario>>
 
-    // CITAS
+    // CITAS - ✅ USANDO CitaUsuarioDTO
     @GET("api/citas")
-    suspend fun getMisCitas(@Header("Authorization") token: String): Response<List<Cita>>
+    suspend fun getMisCitas(@Header("Authorization") token: String): Response<List<CitaUsuarioDTO>>
 
     @GET("api/citas/{id}")
     suspend fun getCitaById(
         @Header("Authorization") token: String,
         @Path("id") id: Int
-    ): Response<Cita>
+    ): Response<CitaUsuarioDTO>  // ✅ Cambio aquí
 
     @POST("api/citas")
     suspend fun crearCita(
         @Header("Authorization") token: String,
         @Body request: CitaRequest
-    ): Response<Cita>
+    ): Response<CitaUsuarioDTO>  // ✅ Cambio aquí
 
     @DELETE("api/citas/{id}")
     suspend fun cancelarCita(

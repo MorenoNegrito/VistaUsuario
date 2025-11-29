@@ -1,5 +1,6 @@
 package com.example.vetapp_usuario.ui.theme.screen.usuario
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,36 +13,59 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.vetapp_usuario.data.model.CitaUsuarioDTO
 import com.example.vetapp_usuario.data.model.ResenaRequest
 import com.example.vetapp_usuario.ui.theme.*
 import com.example.vetapp_usuario.viewmodel.UsuarioViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrearResenaScreen(
     token: String,
-    citaId: Int,
     veterinarioId: Int,
     viewModel: UsuarioViewModel,
     onSuccess: () -> Unit
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsState()
+
     var estrellas by remember { mutableStateOf(0) }
     var comentario by remember { mutableStateOf("") }
+    var citaSeleccionada by remember { mutableStateOf<CitaUsuarioDTO?>(null) }
+    var showCitaSelector by remember { mutableStateOf(false) }
 
-    val uiState by viewModel.uiState.collectAsState()
+    // Cargar citas del usuario
+    LaunchedEffect(token) {
+        if (token.isNotBlank()) {
+            viewModel.loadCitas(token)
+        }
+    }
+
+    // Filtrar citas COMPLETADAS con este veterinario
+    val citasDisponibles = remember(uiState.citas) {
+        uiState.citas.filter { cita ->
+            cita.estado.uppercase() == "COMPLETADA" &&
+                    cita.veterinarioNombre.contains("Pedro", ignoreCase = true) // Temporal: filtrar por nombre
+        }
+    }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
+            Toast.makeText(context, "Error: $error", Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Calificar Atención",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
+                title = { Text("Calificar Atención", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onSuccess) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -103,6 +127,87 @@ fun CrearResenaScreen(
                             text = "Tu opinión nos ayuda a mejorar",
                             fontSize = 14.sp,
                             color = TextSecondary
+                        )
+                    }
+                }
+            }
+
+            // Selector de Cita
+            if (citasDisponibles.isNotEmpty()) {
+                Text(
+                    text = "Selecciona la cita a calificar",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary
+                )
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showCitaSelector = true },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = BackgroundWhite
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (citaSeleccionada != null) {
+                                    formatFechaCrearResena(citaSeleccionada!!.fechaHora)
+                                } else {
+                                    "Seleccionar cita"
+                                },
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextPrimary
+                            )
+                            if (citaSeleccionada != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = citaSeleccionada!!.motivo,
+                                    fontSize = 13.sp,
+                                    color = TextSecondary
+                                )
+                            }
+                        }
+                        Icon(
+                            Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            tint = PrimaryBlue
+                        )
+                    }
+                }
+            } else {
+                // Si no hay citas disponibles
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFEE2E2)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            tint = AccentRed
+                        )
+                        Text(
+                            text = "No tienes citas completadas con este veterinario. Debes tener al menos una cita finalizada para dejar una reseña.",
+                            fontSize = 13.sp,
+                            color = TextPrimary,
+                            lineHeight = 18.sp
                         )
                     }
                 }
@@ -209,50 +314,61 @@ fun CrearResenaScreen(
                 }
             }
 
-            // Información
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFF0FDF4)
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = null,
-                        tint = AccentGreen,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "Tu reseña será visible para otros usuarios y ayudará a mejorar nuestro servicio.",
-                        fontSize = 13.sp,
-                        color = TextPrimary,
-                        lineHeight = 18.sp
-                    )
-                }
-            }
-
             Spacer(modifier = Modifier.height(8.dp))
 
             // Botón enviar
             Button(
                 onClick = {
-                    val request = ResenaRequest(
-                        citaId = citaId,
-                        estrellas = estrellas,
-                        comentario = comentario
-                    )
-                    viewModel.crearResena(token, request, onSuccess)
+                    when {
+                        citaSeleccionada == null -> {
+                            Toast.makeText(
+                                context,
+                                "Por favor selecciona una cita",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        estrellas == 0 -> {
+                            Toast.makeText(
+                                context,
+                                "Por favor selecciona una calificación",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        comentario.isBlank() -> {
+                            Toast.makeText(
+                                context,
+                                "Por favor escribe un comentario",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        else -> {
+                            scope.launch {
+                                val request = ResenaRequest(
+                                    citaId = citaSeleccionada!!.id.toInt(),
+                                    estrellas = estrellas,
+                                    comentario = comentario
+                                )
+
+                                viewModel.crearResena(token, request) {
+                                    Toast.makeText(
+                                        context,
+                                        "✅ Reseña publicada exitosamente",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    onSuccess()
+                                }
+                            }
+                        }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
-                enabled = !uiState.isLoading && estrellas > 0 && comentario.isNotBlank(),
+                enabled = !uiState.isLoading &&
+                        citasDisponibles.isNotEmpty() &&
+                        citaSeleccionada != null &&
+                        estrellas > 0 &&
+                        comentario.isNotBlank(),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryBlue,
@@ -278,5 +394,82 @@ fun CrearResenaScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    // Dialog selector de citas
+    if (showCitaSelector) {
+        AlertDialog(
+            onDismissRequest = { showCitaSelector = false },
+            title = {
+                Text(
+                    text = "Selecciona la cita",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    citasDisponibles.forEach { cita ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    citaSeleccionada = cita
+                                    showCitaSelector = false
+                                },
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (citaSeleccionada?.id == cita.id)
+                                    Color(0xFFDEEBFF) else IconBackground
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Text(
+                                    text = formatFechaCrearResena(cita.fechaHora),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = cita.motivo,
+                                    fontSize = 12.sp,
+                                    color = TextSecondary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Mascota: ${cita.mascotaNombre}",
+                                    fontSize = 11.sp,
+                                    color = TextTertiary
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showCitaSelector = false }) {
+                    Text("Cancelar")
+                }
+            },
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+}
+
+fun formatFechaCrearResena(fechaHora: String): String {
+    return try {
+        val partes = fechaHora.split("T")
+        if (partes.size >= 2) {
+            val fecha = partes[0]
+            val hora = partes[1].take(5)
+            "$fecha a las $hora"
+        } else {
+            fechaHora
+        }
+    } catch (e: Exception) {
+        fechaHora
     }
 }

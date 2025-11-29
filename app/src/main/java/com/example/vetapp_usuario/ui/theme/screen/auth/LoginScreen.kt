@@ -41,7 +41,9 @@ fun LoginScreen(
     LaunchedEffect(uiState.loginSuccess) {
         if (uiState.loginSuccess && uiState.token != null) {
             scope.launch {
-                preferences.saveToken("Bearer ${uiState.token}")
+                // ✅ CORRECCIÓN: NO agregar "Bearer " aquí
+                // El Repository ya lo agrega en cada petición
+                preferences.saveToken(uiState.token!!)
                 preferences.saveUserId(uiState.userId ?: 0)
                 preferences.setLoggedIn(true)
                 onLoginSuccess()
@@ -134,9 +136,7 @@ fun LoginScreen(
                         )
                     )
 
-                    var password by remember { mutableStateOf("") }
-                    var passwordVisible by remember { mutableStateOf(false) }
-
+                    // Password
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
@@ -166,7 +166,6 @@ fun LoginScreen(
                             cursorColor = PrimaryBlue
                         )
                     )
-
 
                     Spacer(modifier = Modifier.height(8.dp))
 
