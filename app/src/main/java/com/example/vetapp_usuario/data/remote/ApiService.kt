@@ -42,7 +42,7 @@ interface ApiService {
         @Path("id") id: Int
     ): Response<Unit>
 
-    // SUCURSALES
+
     @GET("api/sucursales")
     suspend fun getSucursales(): Response<List<Sucursal>>
 
@@ -52,7 +52,7 @@ interface ApiService {
     @GET("api/sucursales/{id}/veterinarios")
     suspend fun getVeterinariosBySucursal(@Path("id") sucursalId: Int): Response<List<Veterinario>>
 
-    // CITAS - ✅ USANDO CitaUsuarioDTO
+
     @GET("api/citas")
     suspend fun getMisCitas(@Header("Authorization") token: String): Response<List<CitaUsuarioDTO>>
 
@@ -60,13 +60,13 @@ interface ApiService {
     suspend fun getCitaById(
         @Header("Authorization") token: String,
         @Path("id") id: Int
-    ): Response<CitaUsuarioDTO>  // ✅ Cambio aquí
+    ): Response<CitaUsuarioDTO>
 
     @POST("api/citas")
     suspend fun crearCita(
         @Header("Authorization") token: String,
         @Body request: CitaRequest
-    ): Response<CitaUsuarioDTO>  // ✅ Cambio aquí
+    ): Response<CitaUsuarioDTO>
 
     @DELETE("api/citas/{id}")
     suspend fun cancelarCita(

@@ -184,7 +184,7 @@ class UsuarioViewModel(
         }
     }
 
-    // ✅ CAMBIO: onResult recibe CitaUsuarioDTO
+
     fun getCitaDetail(token: String, citaId: Int, onResult: (CitaUsuarioDTO?) -> Unit) {
         viewModelScope.launch {
             setLoading(true)
