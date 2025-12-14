@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// ✅ CAMBIO: citas usa CitaUsuarioDTO
+
 data class UsuarioUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -191,7 +191,6 @@ class UsuarioViewModel(
             setError(null)
             try {
 
-                // 🔥🔥 AGREGAR LOGS AQUÍ 🔥🔥
                 android.util.Log.d("DETALLE_CITA", "Llamando detalle de cita...")
                 android.util.Log.d("DETALLE_CITA", "Token enviado: '$token'")
                 android.util.Log.d("DETALLE_CITA", "ID enviado: $citaId")

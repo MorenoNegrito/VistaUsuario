@@ -40,12 +40,9 @@ fun RegisterScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Guardar token cuando el registro sea exitoso
     LaunchedEffect(uiState.registerSuccess) {
         if (uiState.registerSuccess && uiState.token != null) {
             scope.launch {
-                // ✅ CORRECCIÓN: NO agregar "Bearer " aquí
-                // El Repository ya lo agrega en cada petición
                 preferences.saveToken(uiState.token!!)
                 preferences.saveUserId(uiState.userId ?: 0)
                 preferences.setLoggedIn(true)

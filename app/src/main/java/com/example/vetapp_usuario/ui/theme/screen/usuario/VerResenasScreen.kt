@@ -58,7 +58,6 @@ fun VerResenasScreen(
         }
     }
 
-    // ✅ LOGS DE DEBUG
     LaunchedEffect(token, uiState.citas, citasCompletadasSinResena) {
         Log.d("VerResenas_DEBUG", "═══════════════════════════════")
         Log.d("VerResenas_DEBUG", "Token length: ${token.length}")

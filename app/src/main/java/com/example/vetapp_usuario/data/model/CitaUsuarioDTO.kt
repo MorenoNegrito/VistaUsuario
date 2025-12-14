@@ -3,6 +3,7 @@ package com.example.vetapp_usuario.data.model
 import com.google.gson.annotations.SerializedName
 
 // DTO que devuelve el backend en GET /api/citas
+// @Serio se ocupa para mappear correctamente el valor
 data class CitaUsuarioDTO(
     @SerializedName("id")
     val id: Int,
@@ -10,7 +11,7 @@ data class CitaUsuarioDTO(
     @SerializedName("fechaHora")
     val fechaHora: String,
 
-    @SerializedName("motivo")  // ← Backend usa "motivo", no "motivoCita"
+    @SerializedName("motivo")
     val motivo: String,
 
     @SerializedName("estado")

@@ -110,7 +110,7 @@ fun AppNavigation(
             val token by preferences.token.collectAsState(initial = null)
             MascotasScreen(
                 viewModel = usuarioViewModel,
-                token = token ?: "",  // ✅ Usa "" si token es null
+                token = token ?: "",  //
                 onCrearMascota = {
                     navController.navigate(AppRoutes.CrearMascota.route)
                 }
@@ -120,7 +120,7 @@ fun AppNavigation(
         composable(AppRoutes.CrearMascota.route) {
             val token by preferences.token.collectAsState(initial = null)
             CrearMascotaScreen(
-                token = token ?: "",  // ✅ Usa "" si token es null
+                token = token ?: "",
                 viewModel = usuarioViewModel,
                 onSuccess = { navController.popBackStack() }
             )
@@ -162,7 +162,7 @@ fun AppNavigation(
         composable(AppRoutes.MisCitas.route) {
             val token by preferences.token.collectAsState(initial = null)
             MisCitasScreen(
-                token = token ?: "",  // ✅ Usa "" si token es null
+                token = token ?: "",
                 navController = navController,
                 viewModel = usuarioViewModel
             )
@@ -171,7 +171,7 @@ fun AppNavigation(
         composable(AppRoutes.CrearCita.route) {
             val token by preferences.token.collectAsState(initial = null)
             CrearCitaScreen(
-                token = token ?: "",  // ✅ Usa "" si token es null
+                token = token ?: "",
                 viewModel = usuarioViewModel,
                 onCreated = { navController.popBackStack() }
             )
@@ -184,7 +184,7 @@ fun AppNavigation(
             val token by preferences.token.collectAsState(initial = "")
             val citaId = backStack.arguments?.getInt("citaId") ?: 0
             DetalleCitaScreen(
-                token = token ?: "",  // ✅ Manejar nullable
+                token = token ?: "",
                 citaId = citaId,
                 viewModel = usuarioViewModel,
                 navController = navController,
@@ -215,10 +215,10 @@ fun AppNavigation(
             route = "ver_resenas/{veterinarioId}",
             arguments = listOf(navArgument("veterinarioId") { type = NavType.IntType })
         ) { backStack ->
-            val token by preferences.token.collectAsState(initial = "")  // ✅ Agregar token
+            val token by preferences.token.collectAsState(initial = "")
             val veterinarioId = backStack.arguments?.getInt("veterinarioId") ?: 0
             VerResenasScreen(
-                token = token ?: "",  // ✅ Pasar token
+                token = token ?: "",
                 veterinarioId = veterinarioId,
                 viewModel = usuarioViewModel,
                 navController = navController

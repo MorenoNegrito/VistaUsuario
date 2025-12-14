@@ -12,8 +12,8 @@ data class UsuarioUiState(
     val resenas: List<Resena> = emptyList(),
 
     // Selecciones individuales
-    val mascotaSeleccionada: Mascota? = null,     // <- agregar
-    val veterinarioSeleccionado: Veterinario? = null, // <- agregar
+    val mascotaSeleccionada: Mascota? = null,
+    val veterinarioSeleccionado: Veterinario? = null,
     val sucursalSeleccionada: Sucursal? = null,
     val usuario: Usuario? = null,
 

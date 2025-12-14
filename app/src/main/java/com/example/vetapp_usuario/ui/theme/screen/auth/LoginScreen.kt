@@ -37,12 +37,9 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Guardar token cuando el login sea exitoso
     LaunchedEffect(uiState.loginSuccess) {
         if (uiState.loginSuccess && uiState.token != null) {
             scope.launch {
-                // ✅ CORRECCIÓN: NO agregar "Bearer " aquí
-                // El Repository ya lo agrega en cada petición
                 preferences.saveToken(uiState.token!!)
                 preferences.saveUserId(uiState.userId ?: 0)
                 preferences.setLoggedIn(true)
@@ -51,10 +48,8 @@ fun LoginScreen(
         }
     }
 
-    // Mostrar error si existe
     uiState.error?.let { error ->
         LaunchedEffect(error) {
-            // Limpiar error después de mostrarlo
             kotlinx.coroutines.delay(3000)
             viewModel.clearError()
         }
@@ -90,7 +85,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Título
             Text(
                 text = "Bienvenido",
                 fontSize = 32.sp,
@@ -108,7 +102,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Formulario
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -136,7 +129,6 @@ fun LoginScreen(
                         )
                     )
 
-                    // Password
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
@@ -169,7 +161,6 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Botón Login
                     Button(
                         onClick = {
                             if (email.isNotBlank() && password.isNotBlank()) {
@@ -205,7 +196,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Link a registro
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
@@ -226,7 +216,6 @@ fun LoginScreen(
             }
         }
 
-        // Snackbar para errores
         uiState.error?.let { error ->
             Snackbar(
                 modifier = Modifier

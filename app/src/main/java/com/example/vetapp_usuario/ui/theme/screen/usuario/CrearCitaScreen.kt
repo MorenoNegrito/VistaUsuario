@@ -60,6 +60,7 @@ fun CrearCitaScreen(
     val displayDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val displayTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+
      LaunchedEffect(Unit) {
           viewModel.loadSucursales()
       }

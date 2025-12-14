@@ -1,6 +1,7 @@
 package com.example.vetapp_usuario.data.model
 import com.google.gson.annotations.SerializedName
 
+//datos de entrada hrmano
 data class CitaRequest(
     @SerializedName("mascotaId") val mascotaId: Int,
     @SerializedName("sucursalId") val sucursalId: Int,

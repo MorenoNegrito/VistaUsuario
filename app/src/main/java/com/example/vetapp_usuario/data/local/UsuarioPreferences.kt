@@ -6,11 +6,16 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+//CREAMOS UNA EXTENSION CONTEXT que agregaa la propediad dataStora, usamos la delegacion
+//Propiedades y sirve de unica instancia (SINGLETON)
 private val Context.dataStore by preferencesDataStore(name = "usuario_preferences")
 
+//Por que tenemos context extendido? por que nos sirve para teteo y agregar dependencias
+//futuro
 class UsuarioPreferences(private val context: Context) {
 
     companion object {
+        //Variables de preferencias (Preferences key)
         private val TOKEN_KEY = stringPreferencesKey("token")
         private val USER_ID_KEY = intPreferencesKey("user_id")
         private val USER_NAME_KEY = stringPreferencesKey("user_name")
@@ -19,6 +24,8 @@ class UsuarioPreferences(private val context: Context) {
     }
 
     // Guardar token
+    //Suspend fun (Ejecucion en segundo plano)
+    //datatore edit escribe en el disco (IO)
     suspend fun saveToken(token: String) {
         context.dataStore.edit { preferences ->
             preferences[TOKEN_KEY] = token
@@ -26,6 +33,8 @@ class UsuarioPreferences(private val context: Context) {
     }
 
     // Obtener token
+    //Flow nos lanzara todos los datos con contestordata nos da todas las prefernces
+    //map transformacion de datosy con preferences sacamos solo el token
     val token: Flow<String?> = context.dataStore.data.map { preferences ->
         preferences[TOKEN_KEY]
     }

@@ -30,7 +30,6 @@ class MainActivity : ComponentActivity() {
             ViewModelProvider(this)[AuthViewModel::class.java]
 
         setContent {
-            // 🔥 CAMBIO: Usar VetAppTheme en lugar de MaterialTheme
             VetAppTheme {
                 Surface {
                     val navController = rememberNavController()

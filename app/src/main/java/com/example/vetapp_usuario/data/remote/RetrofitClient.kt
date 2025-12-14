@@ -8,6 +8,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 import java.util.concurrent.TimeUnit
 
+
+//El motivo del cual es un object es por que es mejor centralizar toda la conexion
 object RetrofitClient {
 
     private const val BASE_URL = "https://api-c2yr.onrender.com/"

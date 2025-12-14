@@ -33,7 +33,6 @@ fun DetalleCitaScreen(
     var showCancelDialog by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
 
-    // ✅ Esperar a que el token esté disponible antes de cargar
     LaunchedEffect(token, citaId) {
         if (token.isNotBlank()) {
             Log.d("DetalleCita", "Cargando detalle de cita ID: $citaId")
